@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        run:
+          shellcheck bump-orbs.sh
+
+      - name: Test bump-orb
+        uses: ./
+        with:
+          config: .github/fixtures/config.yml
+          ignore: |
+            circleci/aws-ecr
+            circleci/node
+
+      - name: Check test
+        run: |
+          if ! grep -E -x '  aws-ecr: circleci/aws-ecr@x\.y\.z' '.github/fixtures/config.yml'; then
+            { echo "aws-ecr should be ignored"; exit 1; };
+          fi
+          if ! grep -E -x '  aws-cli: circleci/aws-cli@[0-9]+\.[0-9]+\.[0-9]+' '.github/fixtures/config.yml'; then
+            { echo "aws-cli should be bumped"; exit 1; };
+          fi
+          if ! grep -E -x '  node: circleci/node@x\.y\.z' '.github/fixtures/config.yml'; then
+            { echo "node should be ignored"; exit 1; };
+          fi
+          if ! grep -E -x '  slack: circleci/slack@[0-9]+\.[0-9]+\.[0-9]+' '.github/fixtures/config.yml'; then
+            { echo "slack should be bumped"; exit 1; };
+          fi
